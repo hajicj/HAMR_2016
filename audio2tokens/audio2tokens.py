@@ -12,10 +12,11 @@ def _raw_audio(audio_path):
     if os.path.exists(audio_path_16k):
         os.remove(audio_path_16k)
     audio_path_raw = audio_name+'.raw'
+
     if os.path.exists(audio_path_raw):
         os.remove(audio_path_raw)
 
-    sox_call = 'sox %s -r 16000 %s' % (audio_path,audio_path_16k)
+    sox_call = 'sox %s  -c 1 -r 16000 %s' % (audio_path,audio_path_16k)
     os.system(sox_call)
 
     ffmpeg_call = 'ffmpeg -i %s -f s16le -acodec pcm_s16le %s' % (audio_path_16k, audio_path_raw)
