@@ -22,20 +22,15 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 
 		o = urlparse(self.path)
 		params=parse_qs(o.query)
-		if debug:
-			print(params)
-			self.wfile.write(json.dumps(5))
-		else:
-			pass		
-			values=rank(params['namefile'][0])
-			self.wfile.write(json.dumps(values))
-		return
+		values=rank(params['namefile'][0])
+		self.wfile.write(json.dumps(values))
+		
       
 def run():
 	print('http server is starting...')
 	PORT=80
-	server_address = ('127.0.0.1', PORT)
-	server_address = ('10.22.12.169', PORT)
+	server_address = ('127.0.0.1', 8000)
+	#server_address = ('10.22.12.169', PORT)
 	httpd = HTTPServer(server_address, RapJudgeServer)	
 	print('http server is running...')
   	httpd.serve_forever()
