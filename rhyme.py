@@ -29,6 +29,7 @@ import argparse
 import collections
 import logging
 import pprint
+import string
 import sys
 import time
 
@@ -45,46 +46,6 @@ __author__ = "Jan Hajic jr."
 
 ##############################################################################
 
-# We need a pronunciation substitution table.
-#         AA	odd     AA D
-#         AE	at	AE T
-#         AH	hut	HH AH T
-#         AO	ought	AO T
-#         AW	cow	K AW
-#         AY	hide	HH AY D
-#         B 	be	B IY
-#         CH	cheese	CH IY Z
-#         D 	dee	D IY
-#         DH	thee	DH IY
-#         EH	Ed	EH D
-#         ER	hurt	HH ER T
-#         EY	ate	EY T
-#         F 	fee	F IY
-#         G 	green	G R IY N
-#         HH	he	HH IY
-#         IH	it	IH T
-#         IY	eat	IY T
-#         JH	gee	JH IY
-#         K 	key	K IY
-#         L 	lee	L IY
-#         M 	me	M IY
-#         N 	knee	N IY
-#         NG	ping	P IH NG
-#         OW	oat	OW T
-#         OY	toy	T OY
-#         P 	pee	P IY
-#         R 	read	R IY D
-#         S 	sea	S IY
-#         SH	she	SH IY
-#         T 	tea	T IY
-#         TH	theta	TH EY T AH
-#         UH	hood	HH UH D
-#         UW	two	T UW
-#         V 	vee	V IY
-#         W 	we	W IY
-#         Y 	yield	Y IY L D
-#         Z 	zee	Z IY
-#         ZH	seizure	S IY ZH ER
 
 class ARPAbet(object):
     """Plain Old Data class for the ARPAbet phonemes."""
@@ -161,7 +122,13 @@ class ARPAbet(object):
     def is_consonant(p):
         return not ARPAbet.is_vowel(p)
 
+
 ##############################################################################
+
+
+def tokenize(text):
+    tokens = nltk.tokenize.wordpunct_tokenize(text.translate(string.punctuation).lower())
+    return tokens
 
 
 def get_prons(words, prondict, unknown_pron_client=None):
@@ -201,6 +168,65 @@ def strip_consonants(pron):
     return [p for p in pron if ARPAbet.is_vowel(p)]
 
 
+def disambiguate_indefinite_article_prons(words, prons):
+    """The indefinite article has two pronunciations, but we can deterministically say
+    which one will be used based on the first phoneme of the next word.
+    Works on the entire words/prons sequences.
+    """
+    INDEFINITE_ARTICLE_PRONS = [['AH'], ['EY']]
+    INDEFINITE_ARTICLE_LONG_PRON = [['EY']]
+    INDEFINITE_ARTICLE_SHORT_PRON = [['AH']]
+
+    out_words, out_prons = [], []
+    for i, (w, ps) in enumerate(itertools.izip(words[:-1], prons[:-1])):
+        if w.lower() == 'a':
+            next_ps = prons[i + 1]
+            # logging.debug('Encountered indefinite article, next prons: {0}'.format(next_ps))
+            is_long = False
+            for p in next_ps:
+                # logging.debug('Testing pron: first phoneme {0}'.format(p[0]))
+                if ARPAbet.is_vowel(p[0]):
+                    logging.debug('\tIs vowel!')
+                    is_long = True
+
+            if is_long:
+                out_pron = INDEFINITE_ARTICLE_LONG_PRON
+            else:
+                out_pron = INDEFINITE_ARTICLE_SHORT_PRON
+
+            out_words.append(w)
+            out_prons.append(out_pron)
+        else:
+            out_words.append(w)
+            out_prons.append(ps)
+
+    # Fencepost
+    out_words.append(words[-1])
+    out_prons.append(prons[-1])
+
+    return out_words, out_prons
+
+
+def preprocess_prons(prons, words):
+    """Complete pronunciations preprocessing. Strip consonants, strip stresses,
+    disambiguate indefinite articles."""
+    out = []
+
+    _, fixed_prons = disambiguate_indefinite_article_prons(words, prons)
+
+    for ps in fixed_prons:
+        os = [strip_consonants(strip_stress(p)) for p in ps]
+        # os = [['_W_'] + strip_consonants(strip_stress(p)) + ['_/W_'] for p in ps]
+        out.append(os)
+
+    # More processing steps:
+    #  - disambiguate the
+    return out
+
+
+##############################################################################
+
+
 def pron_bleu(prons_1, prons_2):
     """Returns the maximum BLEU score of two pronunciations."""
     logging.debug('Prons 1: {0}'.format(prons_1))
@@ -211,7 +237,10 @@ def pron_bleu(prons_1, prons_2):
     best_p2 = None
     for p1 in prons_1:
         for p2 in prons_2:
-            bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
+            if p1 == p2:
+                bleu = 1.0
+            else:
+                bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
             if bleu > best_score:
                 best_p1 = p1
                 best_p2 = p2
@@ -228,6 +257,9 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu):
             prondict[word].append(syl)
 
     prons = get_prons(words, prondict=prondict, unknown_pron_client=Pronounce())
+    prons = preprocess_prons(prons, words=words)
+
+    logging.debug('Words: {0}\nProns: {1}'.format(words, prons))
 
     # Your code goes here
     pair_scores = {}
@@ -242,28 +274,44 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu):
             p1, p2, score = pair_score_fn(ps1, ps2)
             pair_scores[(w1, w2)] = score
             pair_prons[(w1, w2)] = (p1, p2)
+            logging.debug('Scoring pair: {0} with {1:.3f}'.format((w1, w2), score))
 
     return pair_scores, pair_prons
 
 
-def line_rhymes(line_1, line_2, prondict=None, pair_score_fn=pron_bleu):
-    """This function counts rhymes in line_1 vs line_2."""
-    raise NotImplementedError()
-
-
 ##############################################################################
 
+# Postprocessing - after the word scores have been computed
 
-def rhyme_score(words, prondict, pair_score_fn=pron_bleu):
-    """Computes the overall rhyming score. This is the "outward-facing"
-    function that wraps all the pieces.
 
-    Current implementation: compute BLEU for all word pairs.
+def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu):
+    """Visualizes the pairwise rhyming scores."""
+    pair_scores, pair_prons = word_rhyming_table(words, prondict=prondict, pair_score_fn=pair_score_fn)
 
-    Needs some visualization... heatmap with cells! (meshgrid)
-    """
-    raise NotImplementedError()
+    score_grid = numpy.zeros((len(words), len(words))) - 1.0
 
+    for i1, w1 in enumerate(words):
+        for i2, w2 in enumerate(words):
+            # check if it's there
+            key = w1, w2
+            if (w1, w2) not in pair_scores:
+                if (w2, w1) not in pair_scores:
+                    continue
+                else:
+                    key = w2, w1
+
+            s = pair_scores[key]
+            score_grid[i1, i2] = s
+            score_grid[i2, i1] = s
+
+    return score_grid
+
+
+def aggregate_score(grid):
+    """Experiments with how to aggregate the score to get sensible results."""
+    # Each word only needs to rhyme once.
+    maxima = grid.max(axis=0)
+    return numpy.average(maxima)
 
 ##############################################################################
 
@@ -290,15 +338,15 @@ def main(args):
     for word, syl in nltk.corpus.cmudict.entries():
         cmudict[word].append(syl)
 
-    words = args.text
+    words = tokenize(' '.join(args.text))
 
     # Your code goes here
-    pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=pron_bleu)
 
-    for w1, w2 in pair_scores:
-        s = pair_scores[(w1, w2)]
-        p1, p2 = pair_prons[(w1, w2)]
-        print('{0} :: {1} ::\t{2}\t::\t{3} :: {4}'.format(w1, w2, s, p1, p2))
+    final_score = aggregate_score(score_grid)
+    print(final_score)
+
 
     _end_time = time.clock()
     logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
