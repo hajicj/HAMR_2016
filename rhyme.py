@@ -437,11 +437,36 @@ def main(args):
     score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=pron_bleu)
 
     final_score = aggregate_score(score_grid)
-    print(final_score)
+    if __name__ == '__main__':
+        print(final_score)
 
 
     _end_time = time.clock()
     logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
+
+    return final_score
+
+
+def alternate_main(args_dict):
+    logging.info('Starting main...')
+    _start_time = time.clock()
+
+    cmudict = collections.defaultdict(list)
+    for word, syl in nltk.corpus.cmudict.entries():
+        cmudict[word].append(syl)
+
+    words = tokenize(' '.join(args['text']))
+
+    # Your code goes here
+    # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    final_score = aggregate_score(score_grid)
+
+    _end_time = time.clock()
+    logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
+
+    return final_score
+
 
 
 ##############################################################################
