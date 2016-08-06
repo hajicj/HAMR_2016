@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""This is a script that tests rhymes.
+"""This is a script that tests rhyme scoring functions.
 
 Input:
 
-  rhyme.py -w word1 word2
+  rhyme.py -t take a step back hey are you really gonna hack a full stack in a day while on crack
 
 Outputs:
 
@@ -27,29 +27,52 @@ __author__ = "Jan Hajic jr."
 ##############################################################################
 
 # We need a pronunciation substitution table.
+#         AA	odd     AA D
+#         AE	at	AE T
+#         AH	hut	HH AH T
+#         AO	ought	AO T
+#         AW	cow	K AW
+#         AY	hide	HH AY D
+#         B 	be	B IY
+#         CH	cheese	CH IY Z
+#         D 	dee	D IY
+#         DH	thee	DH IY
+#         EH	Ed	EH D
+#         ER	hurt	HH ER T
+#         EY	ate	EY T
+#         F 	fee	F IY
+#         G 	green	G R IY N
+#         HH	he	HH IY
+#         IH	it	IH T
+#         IY	eat	IY T
+#         JH	gee	JH IY
+#         K 	key	K IY
+#         L 	lee	L IY
+#         M 	me	M IY
+#         N 	knee	N IY
+#         NG	ping	P IH NG
+#         OW	oat	OW T
+#         OY	toy	T OY
+#         P 	pee	P IY
+#         R 	read	R IY D
+#         S 	sea	S IY
+#         SH	she	SH IY
+#         T 	tea	T IY
+#         TH	theta	TH EY T AH
+#         UH	hood	HH UH D
+#         UW	two	T UW
+#         V 	vee	V IY
+#         W 	we	W IY
+#         Y 	yield	Y IY L D
+#         Z 	zee	Z IY
+#         ZH	seizure	S IY ZH ER
 
 
 ##############################################################################
 
+def strip_stress(pron):
+    """Removes the stress markers from the phones."""
 
-def rhyme(w, level):
-    entries = nltk.corpus.cmudict.entries()
-    syllables = [(word, phoneme) for word, phoneme in entries if word == w]
-    rhymes = []
-    for (word, syllable) in syllables:
-        rhymes += [word for word, pron in entries if pron[-level:] == syllable[-level:]]
-    return set(rhymes)
-
-
-def do_they_rhyme(word1, word2):
-    # first, we don't want to report 'glue' and 'unglue' as rhyming words
-    # those kind of rhymes are LAME
-    if word1.find(word2) == len(word1) - len(word2):
-        return False
-    if word2.find(word1) == len(word2) - len(word1):
-        return False
-
-    return word1 in rhyme(word2, 1)
 
 
 def pron_bleu(word1, word2, prondict):
@@ -108,6 +131,11 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu):
     return pair_scores, pair_prons
 
 
+def line_rhymes(line_1, line_2, prondict=None, pair_score_fn=pron_bleu):
+    """This function counts rhymes in line_1 vs line_2."""
+    raise NotImplementedError()
+
+
 ##############################################################################
 
 
@@ -115,7 +143,7 @@ def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__, add_help=True,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-w', '--words', action='store', nargs='+',
+    parser.add_argument('-t', '--text', action='store', nargs='+',
                         help='space-separated list of words.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Turn on INFO messages.')
@@ -133,7 +161,7 @@ def main(args):
     for word, syl in nltk.corpus.cmudict.entries():
         cmudict[word].append(syl)
 
-    words = args.words
+    words = args.text
 
     # Your code goes here
     pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
