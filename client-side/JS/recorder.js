@@ -31,7 +31,7 @@
   
   function createDownloadLink() {
     recorder && recorder.exportWAV(function(blob) {
-      debug=true;
+      debug=false;
       if(debug){
         download='prova';}
       else{
@@ -39,8 +39,10 @@
           saveAs(blob, download);}
       queryParam=$.param({'namefile':download});
 
-      event.preventDefault();
+      event.preventDefault();      
       var url = 'http://127.0.0.1?'+queryParam;
+      var url = 'http://10.22.12.169?'+queryParam;
+      
       $.get(url, success);
 
 
