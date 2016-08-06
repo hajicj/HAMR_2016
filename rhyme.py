@@ -311,6 +311,33 @@ def pron_bleu(prons_1, prons_2):
     return best_p1, best_p2, best_score
 
 
+def pron_simple(prons_1, prons_2):
+    best_score = -1.0
+    best_p1 = None
+    best_p2 = None
+    for p1 in prons_1:
+        for p2 in prons_2:
+            if p1 == p2:
+                bleu = 1.0
+            elif len(p1) == 0:
+                logging.warn('Zero-length pron!')
+                bleu = 0.0
+            elif len(p2) == 0:
+                logging.warn('Zero-length pron!')
+                bleu = 0.0
+            else:
+                bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
+            if bleu > best_score:
+                best_p1 = p1
+                best_p2 = p2
+                best_score = bleu
+
+    return best_p1, best_p2, best_score
+
+
+##############################################################################
+
+
 def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu, term_weights=None,
                        MAX_DISTANCE=16):
 
@@ -448,7 +475,7 @@ def main(args):
     return final_score
 
 
-def alternate_main(args_dict):
+def get_score(args_dict):
     logging.info('Starting main...')
     _start_time = time.clock()
 
