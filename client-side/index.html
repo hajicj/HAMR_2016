@@ -1,0 +1,95 @@
+
+<!DOCTYPE html><html class=''>
+<head><meta charset='UTF-8'><meta name="robots" content="noindex"><link rel="canonical" href="https://codepen.io/seansean11/pen/dhwzj" />
+<script src="JS/jquery-1.11.1.min.js"></script>
+
+<style class="cp-pen-styles">body, html {
+  height: 100%;
+  background: #fff;
+}
+
+.container {
+  width: 400px;
+  height: 100%;
+  margin: 0 auto 0;
+  -webkit-perspective: 1000;
+  -webkit-backface-visibility: hidden;
+  background: #fff;
+}
+
+.pulse-button {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  margin-left: -70px;
+  margin-top: -50px;
+  display: block;
+  width: 200px;
+  height: 200px;
+  font-size: 100px;
+  font-weight: 900;
+  font-family: 'Trebuchet MS', sans-serif;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 200px;
+  letter-spacing: -10px;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  background: #5a99d4;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 rgba(90, 153, 212, 0.5);
+  -webkit-animation:None;
+}
+
+.pulse-button:active {
+  -webkit-animation: pulse 1.5s infinite;
+}
+
+@-webkit-keyframes pulse {
+  0% {
+    -moz-transform: scale(0.9);
+    -ms-transform: scale(0.9);
+    -webkit-transform: scale(0.9);
+    transform: scale(0.9);
+  }
+  70% {
+    -moz-transform: scale(1);
+    -ms-transform: scale(1);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    box-shadow: 0 0 0 50px rgba(90, 153, 212, 0);
+  }
+  100% {
+    -moz-transform: scale(0.9);
+    -ms-transform: scale(0.9);
+    -webkit-transform: scale(0.9);
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(90, 153, 212, 0);
+  }
+}
+
+
+ #recordingslist audio { display: block; margin-bottom: 10px; }
+</style></head><body>
+
+
+
+ 
+  
+
+  <script>
+  //<button onclick="stopRecording(this);" disabled>stop</button>
+  
+  </script>
+<script src="JS/FileSaver.min.js"></script>
+  <script src="JS/recorder.js"></script>
+</body>
+</html>
+
+
+<div class='container'>
+  <span class='pulse-button' onmousedown="startRecording(this)" onmouseup="stopRecording(this)">RAP</span>
+</div>
+
+</body></html>

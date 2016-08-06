@@ -1,13 +1,7 @@
   
   var audio_context;
   var recorder;
-  function mouseDown() {
-    document.getElementById("myP").style.color = "red";
-}
 
-function mouseUp() {
-    document.getElementById("myP").style.color = "green";
-}
   function startUserMedia(stream) {
     var input = audio_context.createMediaStreamSource(stream);    
     recorder = new Recorder(input);    
@@ -28,11 +22,30 @@ function mouseUp() {
     
     recorder.clear();
   }
+  
+  var success=function(data){
+    data=$.parseJSON(data);
+    console.log(data);    
+  };
 
+  
   function createDownloadLink() {
     recorder && recorder.exportWAV(function(blob) {
-      download = new Date().toISOString() + '.wav';      
-      saveAs(blob, download);
+      debug=false;
+      if(debug){
+        download='prova';}
+      else{
+          download = "RAP_"+new Date().toISOString() + '.wav';      
+          saveAs(blob, download);}
+      queryParam=$.param({'namefile':download});
+
+      event.preventDefault();      
+      var url = 'http://127.0.0.1?'+queryParam;
+      var url = 'http://10.22.12.169?'+queryParam;
+      
+      $.get(url, success);
+
+
       //CALL FUNCTION
     });
   }
