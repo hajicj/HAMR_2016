@@ -33,8 +33,9 @@ class RapJudgeServer(BaseHTTPRequestHandler):
       
 def run():
 	print('http server is starting...')
-	PORT=8000
-	server_address = ('127.0.0.1', 80)
+	PORT=80
+	server_address = ('127.0.0.1', PORT)
+	server_address = ('10.22.12.169', PORT)
 	httpd = HTTPServer(server_address, RapJudgeServer)	
 	print('http server is running...')
   	httpd.serve_forever()
