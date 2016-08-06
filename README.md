@@ -6,4 +6,4 @@ HAMR 2016 hack repo
 export HARM_2016_PATH=/path/to/git/local/repo
 
 # To use google speech API
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/git/local/repo/google_api/a73d2853efab.json
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/git/local/repo/audio2tokens/google_api/a73d2853efab.json
