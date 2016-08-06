@@ -476,6 +476,12 @@ def main(args):
 
 
 def get_score(args_dict):
+    """Call this from the judge. The args_dict should have the 'text' key:
+
+    >>> args = {'text': ['This', 'is', 'some', 'rap', 'it', 'is', 'pretty', 'crap']}
+    >>> score = get_score(args)
+
+    """
     logging.info('Starting main...')
     _start_time = time.clock()
 
