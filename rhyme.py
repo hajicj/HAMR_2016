@@ -405,6 +405,7 @@ def aggregate_score(grid):
     maxima = grid.max(axis=0)
     return numpy.average(maxima)
 
+
 ##############################################################################
 
 
