@@ -7,7 +7,21 @@ Input:
 
 Outputs:
 
-  rhyming data
+  rhyming data:
+    - count
+    - locations (density?)
+    - distances
+
+Parameters:
+
+    - strip stress
+
+Relevant ideas
+--------------
+
+Novelty of vocabulary.
+Not repeating yourself.
+Rhymes should be varied enough, but more consistent lines of rhyming are also appreciated.
 
 """
 from __future__ import print_function, unicode_literals
@@ -18,7 +32,12 @@ import pprint
 import sys
 import time
 
+import itertools
+import matplotlib.pyplot as plt
 import nltk
+import numpy
+
+from pronounce import Pronounce
 
 __version__ = "0.0.1"
 __author__ = "Jan Hajic jr."
@@ -67,23 +86,125 @@ __author__ = "Jan Hajic jr."
 #         Z 	zee	Z IY
 #         ZH	seizure	S IY ZH ER
 
+class ARPAbet(object):
+    """Plain Old Data class for the ARPAbet phonemes."""
+    phonemes = {
+        'AA',
+        'AE',
+        'AH',
+        'AO',
+        'AW',
+        'AY',
+        'B',
+        'CH',
+        'D',
+        'DH',
+        'EH',
+        'ER',
+        'EY',
+        'F',
+        'G',
+        'HH',
+        'IH',
+        'IY',
+        'JH',
+        'K',
+        'L',
+        'M',
+        'N',
+        'NG',
+        'OW',
+        'OY',
+        'P',
+        'R',
+        'S',
+        'SH',
+        'T',
+        'TH',
+        'UH',
+        'UW',
+        'V',
+        'W',
+        'Y',
+        'Z',
+        'ZH',
+    }
+
+    vowels = {
+        'AA',
+        'AE',
+        'AH',
+        'AO',
+        'AW',
+        'AY',
+        'EH',
+        'ER',
+        'EY',
+        'IH',
+        'IY',
+        'JH',
+        'OW',
+        'OY',
+        'UH',
+        'UW',
+        'Y',
+    }
+
+    @staticmethod
+    def is_vowel(p):
+        if strip_stress([p])[0] in ARPAbet.vowels:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def is_consonant(p):
+        return not ARPAbet.is_vowel(p)
 
 ##############################################################################
 
+
+def get_prons(words, prondict, unknown_pron_client=None):
+    """Collect pronunciations for each word (as a list of ARPAbet lists).
+    For unknown words, queries the Logios server at CMU.
+    """
+    prons = []
+    for w in words:
+        if w not in prondict:
+            if unknown_pron_client is None:
+                unknown_pron_client = Pronounce()
+            unknown_pron_client.add(w)
+            ps = unknown_pron_client.p(add_fake_stress=True)
+        else:
+            ps = prondict[w]
+        prons.append(ps)
+    return prons
+
+
 def strip_stress(pron):
-    """Removes the stress markers from the phones."""
+    """Removes the stress markers from the phones.
+
+    >>> pron = ['AA1', 'R', 'G', 'Y', 'UH0']
+    >>> strip_stress(pron)
+    [u'AA', u'R', u'G', u'Y', u'UH']
+    """
+    out = []
+    for p in pron:
+        if p[-1] in '0123':
+            out.append(p[:-1])
+        else:
+            out.append(p)
+    return out
 
 
+def strip_consonants(pron):
+    return [p for p in pron if ARPAbet.is_vowel(p)]
 
-def pron_bleu(word1, word2, prondict):
-    """Returns the maximum BLEU score of two words' pronunciations.
-    Supply the prondict as a dictionary with word keys and list of prons
-    as values."""
-    prons_1 = prondict[word1]
-    prons_2 = prondict[word2]
 
-    logging.info('Prons 1: {0}'.format(prons_1))
-    logging.info('Prons 2: {0}'.format(prons_2))
+def pron_bleu(prons_1, prons_2):
+    """Returns the maximum BLEU score of two pronunciations."""
+    logging.debug('Prons 1: {0}'.format(prons_1))
+    logging.debug('Prons 2: {0}'.format(prons_2))
 
     best_score = -1.0
     best_p1 = None
@@ -106,25 +227,19 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu):
         for word, syl in nltk.corpus.cmudict.entries():
             prondict[word].append(syl)
 
-    words = args.words
+    prons = get_prons(words, prondict=prondict, unknown_pron_client=Pronounce())
 
     # Your code goes here
     pair_scores = {}
     pair_prons = {}
-    for w1 in words:
-
-        if w1 not in prondict:
-            raise ValueError('Word {0} not found in the dictionary.'.format(w1))
-        for w2 in words:
-            if w2 not in prondict:
-                raise ValueError('Word {0} not found in the dictionary.'.format(w2))
-
+    for ps1, w1 in itertools.izip(prons, words):
+        for ps2, w2 in itertools.izip(prons, words):
             if w1 == w2:
                 continue
             if ((w1, w2) in pair_scores) or ((w2, w1) in pair_scores):
                 continue
 
-            p1, p2, score = pair_score_fn(w1, w2, prondict)
+            p1, p2, score = pair_score_fn(ps1, ps2)
             pair_scores[(w1, w2)] = score
             pair_prons[(w1, w2)] = (p1, p2)
 
@@ -133,6 +248,20 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu):
 
 def line_rhymes(line_1, line_2, prondict=None, pair_score_fn=pron_bleu):
     """This function counts rhymes in line_1 vs line_2."""
+    raise NotImplementedError()
+
+
+##############################################################################
+
+
+def rhyme_score(words, prondict, pair_score_fn=pron_bleu):
+    """Computes the overall rhyming score. This is the "outward-facing"
+    function that wraps all the pieces.
+
+    Current implementation: compute BLEU for all word pairs.
+
+    Needs some visualization... heatmap with cells! (meshgrid)
+    """
     raise NotImplementedError()
 
 
