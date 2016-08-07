@@ -414,27 +414,38 @@ def aggregate_score(grid):
     return numpy.average(maxima)
 
 
-def find_rhyme_groups(grid, words):
-    """Identify groups of words that look like they're on a grid.
-    These are cliques in an adjacency graph.
-    """
-    thr = 0.4
+def binarize_grid(grid, thr=0.8):
+
     binary_grid = grid * 1
     binary_grid[grid <= thr] = 0
     binary_grid[grid > thr] = 1
+    for i in xrange(binary_grid.shape[0]):
+        binary_grid[i, i] = 1
+    return binary_grid
 
+
+def find_rhyme_groups(grid, words, thr=0.8):
+    """Identify groups of words that look like they're on a grid.
+    These are cliques in an adjacency graph.
+    """
+    word_keys = [w + '_{0}'.format(i) for i, w in enumerate(words)]
+    binary_grid = binarize_grid(grid, thr=thr)
     G = networkx.Graph()
-    G.add_nodes_from(words)
-    for i, x in enumerate(words):
-        for j, y in enumerate(words):
-            if j <= i:
+    G.add_nodes_from(word_keys)
+    for i, x in enumerate(word_keys):
+        for j, y in enumerate(word_keys):
+            if j < i:
                 continue
             if binary_grid[i, j] > 0:
                 G.add_edge(x, y)
 
     cliques = list(networkx.enumerate_all_cliques(G))
-    print(len(cliques))
+    return cliques
 
+
+def multi_clique_ratio(cliques, min_level=3):
+    multi_cliques = [c for c in cliques if len(c) >= min_level]
+    return multi_cliques
 
 
 ##############################################################################
