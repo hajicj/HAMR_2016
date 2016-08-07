@@ -493,7 +493,7 @@ def get_score(args_dict):
     for word, syl in nltk.corpus.cmudict.entries():
         cmudict[word].append(syl)
 
-    words = tokenize(' '.join(args['text']))
+    words = tokenize(' '.join(args_dict['text']))
 
     # Your code goes here
     # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
