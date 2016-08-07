@@ -38,6 +38,8 @@ import matplotlib.pyplot as plt
 import nltk
 import numpy
 
+import networkx
+
 from pronounce import Pronounce
 
 __version__ = "0.0.1"
@@ -311,30 +313,6 @@ def pron_bleu(prons_1, prons_2):
     return best_p1, best_p2, best_score
 
 
-def pron_simple(prons_1, prons_2):
-    best_score = -1.0
-    best_p1 = None
-    best_p2 = None
-    for p1 in prons_1:
-        for p2 in prons_2:
-            if p1 == p2:
-                bleu = 1.0
-            elif len(p1) == 0:
-                logging.warn('Zero-length pron!')
-                bleu = 0.0
-            elif len(p2) == 0:
-                logging.warn('Zero-length pron!')
-                bleu = 0.0
-            else:
-                bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
-            if bleu > best_score:
-                best_p1 = p1
-                best_p2 = p2
-                best_score = bleu
-
-    return best_p1, best_p2, best_score
-
-
 ##############################################################################
 
 
@@ -403,7 +381,7 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu, term_weigh
 # Postprocessing - after the word scores have been computed
 
 
-def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu):
+def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu, nonnegative=False):
     """Visualizes the pairwise rhyming scores."""
     pair_scores, pair_prons = word_rhyming_table(words, prondict=prondict, pair_score_fn=pair_score_fn)
 
@@ -423,6 +401,9 @@ def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu):
             score_grid[i1, i2] = s
             score_grid[i2, i1] = s
 
+    if nonnegative is True:
+        score_grid[score_grid < 0.0] = 0.0
+
     return score_grid
 
 
@@ -431,6 +412,29 @@ def aggregate_score(grid):
     # Each word only needs to rhyme once.
     maxima = grid.max(axis=0)
     return numpy.average(maxima)
+
+
+def find_rhyme_groups(grid, words):
+    """Identify groups of words that look like they're on a grid.
+    These are cliques in an adjacency graph.
+    """
+    thr = 0.4
+    binary_grid = grid * 1
+    binary_grid[grid <= thr] = 0
+    binary_grid[grid > thr] = 1
+
+    G = networkx.Graph()
+    G.add_nodes_from(words)
+    for i, x in enumerate(words):
+        for j, y in enumerate(words):
+            if j <= i:
+                continue
+            if binary_grid[i, j] > 0:
+                G.add_edge(x, y)
+
+    cliques = list(networkx.enumerate_all_cliques(G))
+    print(len(cliques))
+
 
 
 ##############################################################################
@@ -500,7 +504,6 @@ def get_score(args_dict):
     logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
 
     return final_score
-
 
 
 ##############################################################################
