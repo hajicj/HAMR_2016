@@ -51,6 +51,7 @@ def _get_text(audio_path_raw):
     return tokens
 raw_audio=_raw_audio
 get_text=_get_text
+
 if __name__=="__main__":
     namefile='/home/michele/Downloads/cleaning.wav'
     audio_path =  os.path.abspath(namefile)#sys.argv[1])
