@@ -91,3 +91,6 @@ ENV/
 
 # PyCharm
 .idea
+
+# mac mountage point
+.DS_Store
