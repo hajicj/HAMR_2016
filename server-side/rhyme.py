@@ -424,7 +424,7 @@ def binarize_grid(grid, thr=0.8):
     return binary_grid
 
 
-def find_rhyme_groups(grid, words, thr=0.8):
+def get_rhyme_graph(grid, words, thr=0.8):
     """Identify groups of words that look like they're on a grid.
     These are cliques in an adjacency graph.
     """
@@ -434,11 +434,13 @@ def find_rhyme_groups(grid, words, thr=0.8):
     G.add_nodes_from(word_keys)
     for i, x in enumerate(word_keys):
         for j, y in enumerate(word_keys):
-            if j < i:
-                continue
             if binary_grid[i, j] > 0:
                 G.add_edge(x, y)
+    return G
 
+
+def get_rhyme_groups(grid, words, thr=0.8):
+    G = get_rhyme_graph(grid, words, thr=thr)
     cliques = list(networkx.enumerate_all_cliques(G))
     return cliques
 
