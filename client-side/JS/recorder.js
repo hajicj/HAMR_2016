@@ -18,8 +18,10 @@
     //button.disabled = true;
     //button.previousElementSibling.disabled = false;
     // create WAV download link using audio data blob
-    createDownloadLink();
-    
+    //createDownloadLink();
+    //sendBlob()
+    recorder && recorder.exportWAV(sendBlob);
+    console.log('I should be here');
     recorder.clear();
   }
   
@@ -28,7 +30,31 @@
     console.log(data);    
   };
 
+function sendBlob(blob) {
+    console.log('Im about to send');
+    console.log(blob);
+    recorder && recorder.exportWAV(function(blob) {
+        var fd = new FormData();
+        fd.append('fname', 'test.wav');
+        fd.append('data', blob);
+        var url = 'http://127.0.0.1:8000';      
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: fd,
+            processData: false,
+            contentType: false
+            }).done(success)
+        });
+    };
+
+
+      //CALL FUNCTION 
+
+    
+
   
+
   function createDownloadLink() {
     recorder && recorder.exportWAV(function(blob) {
       debug=false;
