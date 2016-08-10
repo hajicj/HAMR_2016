@@ -302,7 +302,11 @@ def pron_bleu(prons_1, prons_2):
                 logging.warn('Zero-length pron!')
                 bleu = 0.0
             else:
+                print(p1)
+                print(p2)
+                
                 bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
+                print('WORKS')
             if bleu > best_score:
                 best_p1 = p1
                 best_p2 = p2
