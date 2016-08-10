@@ -40,8 +40,8 @@
       queryParam=$.param({'namefile':download});
 
       event.preventDefault();      
-      var url = 'http://127.0.0.1?'+queryParam;
-      var url = 'http://10.22.12.169?'+queryParam;
+      var url = 'http://127.0.0.1:8000?'+queryParam;
+      //var url = 'http://10.22.12.169?'+queryParam;
       
       $.get(url, success);
 
