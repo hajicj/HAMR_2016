@@ -38,6 +38,8 @@ import matplotlib.pyplot as plt
 import nltk
 import numpy
 
+import networkx
+
 from pronounce import Pronounce
 
 __version__ = "0.0.1"
@@ -103,12 +105,12 @@ class ARPAbet(object):
         'EY',
         'IH',
         'IY',
-        'JH',
+        # 'JH',
         'OW',
         'OY',
         'UH',
         'UW',
-        'Y',
+        # 'Y',
     }
 
     @staticmethod
@@ -159,7 +161,7 @@ STRONG_STOPWORDS = {u'its', u'o',
                     u'up', u'will', u'ain', u'can', u'my', u'and', u've',
                     u'is', u'am', u'it', u'doesn', u'an', u'as', u'at', u'have', u'in', u'if',
                     u'when', u'how', u'which', u'you', u'haven',
-                    u'most', u'such', u'why', u'a', u'i', u'm', u'so', u'y', u'the',
+                    u'most', u'such', u'why', u'a', u'i', u'm', u'so', u'y', u'the', u'im'
                     }
 
 
@@ -189,7 +191,7 @@ def get_prons(words, prondict, unknown_pron_client=None):
             # The output format of the unknown pron client is a single-key dict...
             # The value is a list of prons. One of these is just the capitalized word.
             ps_dict = unknown_pron_client.p(add_fake_stress=True)
-            ps = [v.split() for v in ps_dict.values()[0] if v.split()[0] in ARPAbet.phonemes]
+            ps = [v.split() for v in ps_dict.values()[0] if strip_stress(v.split())[0] in ARPAbet.phonemes]
             unknown_pron_client.words = []
         else:
             ps = prondict[w]
@@ -204,16 +206,22 @@ def strip_stress(pron):
     >>> strip_stress(pron)
     [u'AA', u'R', u'G', u'Y', u'UH']
     """
+    if isinstance(pron, str) or isinstance(pron, unicode):
+        if pron[-1] in '0123':
+            return pron[:-1]
+        else:
+            return pron
+
     out = []
     for p in pron:
         try:
             if p[-1] in '0123':
                 out.append(p[:-1])
+            else:
+                out.append(p)
         except IndexError:
             print('Strange phoneme {0} in pron {1}'.format(p, pron))
             raise
-        else:
-            out.append(p)
     return out
 
 
@@ -260,7 +268,7 @@ def disambiguate_indefinite_article_prons(words, prons):
     return out_words, out_prons
 
 
-def preprocess_prons(prons, words):
+def preprocess_prons(prons, words, do_strip_consonants=True):
     """Complete pronunciations preprocessing. Strip consonants, strip stresses,
     disambiguate indefinite articles."""
     out = []
@@ -270,7 +278,10 @@ def preprocess_prons(prons, words):
 
     for ps, w in zip(fixed_prons, words):
         try:
-            os = [strip_consonants(strip_stress(p)) for p in ps]
+            if do_strip_consonants:
+                os = [strip_consonants(strip_stress(p)) for p in ps]
+            else:
+                os = [strip_stress(p) for p in ps]
         except IndexError:
             print('In pron/word: {0}/{1}'.format(ps, w))
             raise
@@ -315,27 +326,22 @@ def pron_bleu(prons_1, prons_2):
     return best_p1, best_p2, best_score
 
 
-def pron_simple(prons_1, prons_2):
-    best_score = -1.0
-    best_p1 = None
-    best_p2 = None
+def pron_suffix_overlap(prons_1, prons_2):
+    best_score, best_p1, best_p2 = -1.0, None, None
     for p1 in prons_1:
         for p2 in prons_2:
             if p1 == p2:
-                bleu = 1.0
-            elif len(p1) == 0:
-                logging.warn('Zero-length pron!')
-                bleu = 0.0
-            elif len(p2) == 0:
-                logging.warn('Zero-length pron!')
-                bleu = 0.0
+                score = 1.0
+            elif (len(p1) == 0) or (len(p2) == 0):
+                score = 0.0
             else:
-                bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
-            if bleu > best_score:
-                best_p1 = p1
-                best_p2 = p2
-                best_score = bleu
-
+                hits = 0.0
+                for a, b in zip(reversed(p1), reversed(p2)):
+                    if a == b:
+                        hits += 1.0
+                score = (2 * hits) / (len(p1) + len(p2))
+            if score > best_score:
+                best_score, best_p1, best_p2 = score, p1, p2
     return best_p1, best_p2, best_score
 
 
@@ -343,7 +349,7 @@ def pron_simple(prons_1, prons_2):
 
 
 def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu, term_weights=None,
-                       MAX_DISTANCE=16):
+                       do_strip_consonants=True, MAX_DISTANCE=16):
 
     if prondict is None:
         prondict = collections.defaultdict(list)
@@ -351,9 +357,10 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu, term_weigh
             prondict[word].append(syl)
 
     prons = get_prons(words, prondict=prondict, unknown_pron_client=Pronounce())
-    prons = preprocess_prons(prons, words=words)
+    prons = preprocess_prons(prons, words=words, do_strip_consonants=do_strip_consonants)
 
     logging.debug('Words: {0}\nProns: {1}'.format(words, prons))
+    # print('Words: {0}\nProns: {1}'.format(words, prons))
 
     # Your code goes here
     pair_scores = {}
@@ -407,9 +414,11 @@ def word_rhyming_table(words, prondict=None, pair_score_fn=pron_bleu, term_weigh
 # Postprocessing - after the word scores have been computed
 
 
-def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu):
+def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu, nonnegative=False,
+                     do_strip_consonants=True):
     """Visualizes the pairwise rhyming scores."""
-    pair_scores, pair_prons = word_rhyming_table(words, prondict=prondict, pair_score_fn=pair_score_fn)
+    pair_scores, pair_prons = word_rhyming_table(words, prondict=prondict, pair_score_fn=pair_score_fn,
+                                                 do_strip_consonants=do_strip_consonants)
 
     score_grid = numpy.zeros((len(words), len(words))) - 1.0
 
@@ -427,6 +436,9 @@ def rhyme_score_grid(words, prondict, pair_score_fn=pron_bleu):
             score_grid[i1, i2] = s
             score_grid[i2, i1] = s
 
+    if nonnegative is True:
+        score_grid[score_grid < 0.0] = 0.0
+
     return score_grid
 
 
@@ -437,7 +449,74 @@ def aggregate_score(grid):
     return numpy.average(maxima)
 
 
+def binarize_grid(grid, thr=0.8):
+
+    binary_grid = grid * 1
+    binary_grid[grid <= thr] = 0
+    binary_grid[grid > thr] = 1
+    for i in xrange(binary_grid.shape[0]):
+        binary_grid[i, i] = 1
+    return binary_grid
+
+
+def get_rhyme_graph(grid, words, thr=0.8):
+    """Identify groups of words that look like they're on a grid.
+    These are cliques in an adjacency graph.
+    """
+    word_keys = [w + '_{0}'.format(i) for i, w in enumerate(words)]
+    binary_grid = binarize_grid(grid, thr=thr)
+    G = networkx.Graph()
+    G.add_nodes_from(word_keys)
+    for i, x in enumerate(word_keys):
+        for j, y in enumerate(word_keys):
+            if binary_grid[i, j] > 0:
+                G.add_edge(x, y)
+    return G
+
+
+def get_rhyme_groups(grid, words, thr=0.8):
+    G = get_rhyme_graph(grid, words, thr=thr)
+    cliques = list(networkx.enumerate_all_cliques(G))
+    return cliques
+
+
+def multi_clique_ratio(cliques, min_level=3):
+    multi_cliques = [c for c in cliques if len(c) >= min_level]
+    return multi_cliques
+
+
 ##############################################################################
+
+
+def get_score(args_dict):
+    """Call this from the judge. The args_dict should have the 'text' key:
+
+    >>> args = {'text': ['This', 'is', 'some', 'rap', 'it', 'is', 'pretty', 'crap']}
+    >>> score = get_score(args)
+
+    """
+    logging.info('Starting main...')
+    _start_time = time.clock()
+
+    cmudict = collections.defaultdict(list)
+    for word, syl in nltk.corpus.cmudict.entries():
+        cmudict[word].append(syl)
+
+    words = tokenize(' '.join(args_dict['text']))
+
+    # Your code goes here
+    # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=DEFAULT_PAIR_SCORE_FN)
+    final_score = aggregate_score(score_grid)
+
+    _end_time = time.clock()
+    logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
+
+    return final_score
+
+
+##############################################################################
+DEFAULT_PAIR_SCORE_FN = pron_suffix_overlap
 
 
 def build_argument_parser():
@@ -466,7 +545,7 @@ def main(args):
 
     # Your code goes here
     # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
-    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=pron_bleu)
+    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=DEFAULT_PAIR_SCORE_FN)
 
     final_score = aggregate_score(score_grid)
     if __name__ == '__main__':
@@ -477,34 +556,6 @@ def main(args):
     logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
 
     return final_score
-
-
-def get_score(args_dict):
-    """Call this from the judge. The args_dict should have the 'text' key:
-
-    >>> args = {'text': ['This', 'is', 'some', 'rap', 'it', 'is', 'pretty', 'crap']}
-    >>> score = get_score(args)
-
-    """
-    logging.info('Starting main...')
-    _start_time = time.clock()
-
-    cmudict = collections.defaultdict(list)
-    for word, syl in nltk.corpus.cmudict.entries():
-        cmudict[word].append(syl)
-
-    words = tokenize(' '.join(args_dict['text']))
-
-    # Your code goes here
-    # pair_scores, pair_prons = word_rhyming_table(words, prondict=cmudict, pair_score_fn=pron_bleu)
-    score_grid = rhyme_score_grid(words, prondict=cmudict, pair_score_fn=pron_bleu)
-    final_score = aggregate_score(score_grid)
-
-    _end_time = time.clock()
-    logging.info('[XXXX] done in {0:.3f} s'.format(_end_time - _start_time))
-
-    return final_score
-
 
 
 ##############################################################################
