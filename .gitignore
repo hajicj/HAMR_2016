@@ -94,3 +94,8 @@ ENV/
 
 # mac mountage point
 .DS_Store
+
+
+# audio files
+.raw
+.wav
