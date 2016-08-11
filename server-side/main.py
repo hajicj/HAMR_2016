@@ -6,6 +6,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import argparse
 import cgi
 import os
+import time
 import json
 from urlparse import urlparse, parse_qs
 from Judge import rank
@@ -50,20 +51,28 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		print('TYPE %s' % (ctype))
 		print('PATH %s' % (self.path))
 		print('ARGS %d' % (len(postvars)))
+		'''
 		if len(postvars):
 			i = 0
 			for key in sorted(postvars):
 				print('ARG[%d] %s=%s' % (i, key, postvars[key]))
 				i += 1
+		'''
+		data=postvars['data']
+		HARM_2016_PATH = os.environ["HARM_2016_PATH"]
 
+		namefile=os.path.join(HARM_2016_PATH,'waves','%s.wav'%str(int(time.time()%14000000000*100000)))
+		with open(namefile,'wb') as f:
+			f.write(data[0])
 		# Tell the browser everything is okay and that there is
 		# HTML to display.
 		self.send_response(200)  # OK
 		self.send_header('Content-type', 'text/html')		
 		self.send_header('Access-Control-Allow-Origin', '*')
 		self.end_headers()
-
-		self.wfile.write(json.dumps({'ciao':5}))
+		values=rank(namefile)
+		self.wfile.write(json.dumps(values))
+		#self.wfile.write(json.dumps({'ciao':5}))
 
 
 

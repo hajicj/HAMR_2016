@@ -30,30 +30,30 @@
     console.log(data);    
   };
 
+var globalBob=null;
+  
 function sendBlob(blob) {
     console.log('Im about to send');
     console.log(blob);
-    recorder && recorder.exportWAV(function(blob) {
-        var fd = new FormData();
-        fd.append('fname', 'test.wav');
-        fd.append('data', blob);
-        var url = 'http://127.0.0.1:8000';      
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: fd,
-            processData: false,
-            contentType: false
-            }).done(success)
-        });
-    };
+    var fd = new FormData();
+    fd.append('fname', 'test.wav');
+    fd.append('data', blob);
+    console.log(blob)
+    globalBob=blob;
+    var url = 'http://127.0.0.1:8000';      
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: fd,
+        processData: false,
+        contentType: false
+        }).done(success)
+};
 
 
       //CALL FUNCTION 
 
     
-
-  
 
   function createDownloadLink() {
     recorder && recorder.exportWAV(function(blob) {
