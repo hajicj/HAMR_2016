@@ -14,7 +14,12 @@ def retrieve_tokens(audiofile):
 def rank(namefile):
 	#audiofile=os.path.join(download_dir,namefile)
 	tokens=retrieve_tokens(namefile)
-	score= get_score({'text':tokens})
-	
+
+	if tokens :
+		score = get_score({'text':tokens})
+	else:
+		score = None
+		print "No tokens found"
+
 	print(score)
 	return {'score':score, 'rhymes_scheme':6}

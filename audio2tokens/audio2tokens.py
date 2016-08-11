@@ -37,18 +37,24 @@ def _get_text(audio_path_raw):
     out = proc.communicate()[0]
     print(out)
     out_lines = map(string.strip,out.split('\n') )
-    transcript = [ l for l in out_lines if l.startswith('"transcript"')][0]
-    t_tokens = transcript[1:-1].split(':')[1].strip('"').split()
 
     tokens = []
-    for token in t_tokens:
-        if token.startswith('"'):
-            token = token[1:]
-        if token.endswith('"'):
-            token = token[:-1]
-        tokens.append(token)
+    startswith_lines = [ l for l in out_lines if l.startswith('"transcript"')]
+    
+
+    if len(startswith_lines) > 0 :
+        transcript = startswith_lines[0]
+        t_tokens = transcript[1:-1].split(':')[1].strip('"').split()
+
+        for token in t_tokens:
+            if token.startswith('"'):
+                token = token[1:]
+            if token.endswith('"'):
+                token = token[:-1]
+            tokens.append(token)
 
     return tokens
+
 raw_audio=_raw_audio
 get_text=_get_text
 
