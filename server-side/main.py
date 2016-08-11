@@ -3,7 +3,10 @@
 #!/usr/bin/env python
  
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import argparse
+import cgi
 import os
+import time
 import json
 from urlparse import urlparse, parse_qs
 from Judge import rank
@@ -24,7 +27,59 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		params=parse_qs(o.query)
 		values=rank(params['namefile'][0])
 		self.wfile.write(json.dumps(values))
-		
+	
+
+	def do_POST(self):
+		'''
+		Handle POST requests.
+		'''
+		print('POST %s' % (self.path))
+
+		ctype, pdict = cgi.parse_header(self.headers['content-type'])
+		if ctype == 'multipart/form-data':
+			postvars = cgi.parse_multipart(self.rfile, pdict)
+		elif ctype == 'application/x-www-form-urlencoded':
+			length = int(self.headers['content-length'])
+			postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
+		else:
+			postvars = {}
+
+        # Get the "Back" link.
+        #back = self.path if self.path.find('?') < 0 else self.path[:self.path.find('?')]
+
+        # Print out logging information about the path and args.
+		print('TYPE %s' % (ctype))
+		print('PATH %s' % (self.path))
+		print('ARGS %d' % (len(postvars)))
+		'''
+		if len(postvars):
+			i = 0
+			for key in sorted(postvars):
+				print('ARG[%d] %s=%s' % (i, key, postvars[key]))
+				i += 1
+		'''
+		data=postvars['data']
+		HARM_2016_PATH = os.environ["HARM_2016_PATH"]
+
+		namefile=os.path.join(HARM_2016_PATH,'waves','%s.wav'%str(int(time.time()%14000000000*100000)))
+		with open(namefile,'wb') as f:
+			f.write(data[0])
+		# Tell the browser everything is okay and that there is
+		# HTML to display.
+		self.send_response(200)  # OK
+		self.send_header('Content-type', 'text/html')		
+		self.send_header('Access-Control-Allow-Origin', '*')
+		self.end_headers()
+		values=rank(namefile)
+		self.wfile.write(json.dumps(values))
+		#self.wfile.write(json.dumps({'ciao':5}))
+
+
+
+
+
+
+
       
 def run():
 	print('http server is starting...')

@@ -1,8 +1,8 @@
 import os, sys, subprocess
 import string
 
-#HARM_2016_PATH = os.environ["HARM_2016_PATH"]
-HARM_2016_PATH='/media/michele/Data/Repo/HAMR_2016/'
+HARM_2016_PATH = os.environ["HARM_2016_PATH"]
+#HARM_2016_PATH='/media/michele/Data/Repo/HAMR_2016/'
 def _raw_audio(audio_path):
 
     audio_name = '.'.join(audio_path.split('.')[:-1])
@@ -29,7 +29,7 @@ def _raw_audio(audio_path):
     return audio_path_raw
 
 def _get_text(audio_path_raw):
-    os.system('export GOOGLE_APPLICATION_CREDENTIALS="/media/michele/Data/Repo/HAMR_2016/audio2tokens/google_api/a73d2853efab.json"')
+    #os.system('export GOOGLE_APPLICATION_CREDENTIALS="/media/michele/Data/Repo/HAMR_2016/audio2tokens/google_api/a73d2853efab.json"')
     os.chdir(os.path.join(HARM_2016_PATH,'audio2tokens','nodejs-docs-samples','speech'))
 
     command = 'nodejs recognize %s' % audio_path_raw

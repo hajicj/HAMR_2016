@@ -313,7 +313,11 @@ def pron_bleu(prons_1, prons_2):
                 logging.warn('Zero-length pron!')
                 bleu = 0.0
             else:
+                print(p1)
+                print(p2)
+                
                 bleu = nltk.translate.bleu_score.sentence_bleu([p2], p1)
+                print('WORKS')
             if bleu > best_score:
                 best_p1 = p1
                 best_p2 = p2
@@ -567,3 +571,6 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
     main(args)
+
+
+#back on my grid and all more potent than tylenol more focus on rhyming all the lyrics my mind can store
