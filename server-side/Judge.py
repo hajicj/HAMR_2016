@@ -10,7 +10,7 @@ def remove_audiofiles(audio_path_raw):
     audio_path_16k = audio_path_raw.replace('.raw','_16k.wav')
     audio_path = audio_path_raw.replace('.raw','.wav')
     os.remove(audio_path)
-	os.remove(audio_path_16k)    
+    os.remove(audio_path_16k)    
     os.remove(audio_path_raw)
 
 
