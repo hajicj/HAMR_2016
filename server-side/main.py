@@ -62,7 +62,7 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		data=postvars['data']
 		HARM_2016_PATH = os.environ["HARM_2016_PATH"]
 
-		namefile=os.path.join(HARM_2016_PATH,'waves','%s.wav'%str(int(time.time()%14000000000*100000)))
+		namefile=os.path.join(HARM_2016_PATH,'server-side','waves','%s.wav'%str(int(time.time()%14000000000*100000)))
 		with open(namefile,'wb') as f:
 			f.write(data[0])
 		# Tell the browser everything is okay and that there is
