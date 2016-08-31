@@ -31,7 +31,7 @@
   };
 
 var globalBob=null;
-  
+local=false;  
 function sendBlob(blob) {
     console.log('Im about to send');
     console.log(blob);
@@ -40,7 +40,8 @@ function sendBlob(blob) {
     fd.append('data', blob);
     console.log(blob)
     globalBob=blob;
-    var url = 'http://127.0.0.1:8000';      
+    if (local){var url = 'http://127.0.0.1:8000';}
+    else{var url = 'http://mir.deib.polimi.it:8001';}      
     $.ajax({
         type: 'POST',
         url: url,

@@ -6,17 +6,15 @@ from rhyme import  get_score
 import time
 
 
-def remove_audiofiles(audio_path):
-    audio_path_16k = audio_path.replace('.wav','_16k.wav')
-    audio_path_raw = audio_path.replace('.wav','.raw')
-
+def remove_audiofiles(audio_path_raw):
+    audio_path_16k = audio_path_raw.replace('.raw','_16k.wav')
+    audio_path = audio_path_raw.replace('.raw','.wav')
     os.remove(audio_path)
 	os.remove(audio_path_16k)    
     os.remove(audio_path_raw)
 
 
 def retrieve_tokens(audiofile):
-	#time.sleep(3)
 	audio_path_raw = raw_audio(audiofile.replace(':','-'))
 	tokens = get_text(audio_path_raw)
 	remove_audiofiles(audio_path_raw)
