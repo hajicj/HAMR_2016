@@ -8,6 +8,7 @@ import cgi
 import os
 import time
 import json
+import argparse
 from urlparse import urlparse, parse_qs
 from Judge import rank
 debug=True
@@ -75,23 +76,32 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		#self.wfile.write(json.dumps({'ciao':5}))
 
 
-
-
-
-
-
-      
-def run():
+def run(port, address):
 	print('http server is starting...')
 	PORT=80
-	server_address = ('127.0.0.1', 8000)
+	server_address = (address, port)
 	#server_address = ('10.22.12.169', PORT)
 	httpd = HTTPServer(server_address, RapJudgeServer)	
-	print('http server is running...')
+	print('http server is running on address %s:%d'%(address,port))
   	httpd.serve_forever()
-  
+ 
+
+def build_argument_parser():
+    parser = argparse.ArgumentParser(description=__doc__, add_help=True,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('-p', '--port', type=int, default=8000, action='store',
+                        help='Port for request')
+    parser.add_argument('-a', '--address', type=str, default="127.0.0.1", action='store',
+                        help='Address from remote (default is local).')
+    return parser
+
+
+
 if __name__ == '__main__':
-	run()
+	parser = build_argument_parser()
+	args = parser.parse_args()
+	run(args.port, args.address)
 
 	#Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 	#httpd = SocketServer.TCPServer(("", PORT), Handler)
