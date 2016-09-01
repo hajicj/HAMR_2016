@@ -3,6 +3,7 @@
 #!/usr/bin/env python
  
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import ssl
 import argparse
 import cgi
 import os
@@ -23,6 +24,9 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		self.send_header('Content-type','text-html')
 		self.send_header('Access-Control-Allow-Origin', '*')
 		self.end_headers()
+
+		self.wfile.write('Hello world')
+		return
 
 		o = urlparse(self.path)
 		params=parse_qs(o.query)
@@ -76,12 +80,15 @@ class RapJudgeServer(BaseHTTPRequestHandler):
 		#self.wfile.write(json.dumps({'ciao':5}))
 
 
-def run(port, address):
+def run(port, address,ssh):
 	print('http server is starting...')
 	PORT=80
 	server_address = (address, port)
 	#server_address = ('10.22.12.169', PORT)
-	httpd = HTTPServer(server_address, RapJudgeServer)	
+	httpd = HTTPServer(server_address, RapJudgeServer)
+	if ssh:
+		print('Creating SSH server')
+		httpd.socket=ssl.wrap_socket(httpd.socket, keyfile="./server.pem", certfile='./server.pem', server_side=True)	
 	print('http server is running on address %s:%d'%(address,port))
   	httpd.serve_forever()
  
@@ -94,6 +101,9 @@ def build_argument_parser():
                         help='Port for request')
     parser.add_argument('-a', '--address', type=str, default="127.0.0.1", action='store',
                         help='Address from remote (default is local).')
+    parser.add_argument('-s', '--ssh', default=False, action='store_true')
+
+
     return parser
 
 
@@ -101,7 +111,7 @@ def build_argument_parser():
 if __name__ == '__main__':
 	parser = build_argument_parser()
 	args = parser.parse_args()
-	run(args.port, args.address)
+	run(args.port, args.address, args.ssh)
 
 	#Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 	#httpd = SocketServer.TCPServer(("", PORT), Handler)
